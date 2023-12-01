@@ -44,6 +44,6 @@ def fetch_data(query):
 #         st.set_option("theme", new_theme)
 #         st.experimental_rerun()
 
-# # Run the Streamlit app
-# if __name__ == "__main__":
-#     main()
+# Run the Streamlit app
+if __name__ == "__main__":
+    main()
