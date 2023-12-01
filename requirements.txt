@@ -1,2 +1,2 @@
 streamlit==1.18.0
-SpeechRecognition==3.8.1
+
