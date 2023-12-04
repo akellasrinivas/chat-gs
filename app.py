@@ -1,18 +1,7 @@
 import streamlit as st
 
-st.markdown("*Streamlit* is **really** ***cool***.")
-st.markdown('''
-    :red[Streamlit] :orange[can] :green[write] :blue[text] :violet[in]
-    :gray[pretty] :rainbow[colors].''')
-st.markdown("Here's a bouquet &mdash;\
-            :tulip::cherry_blossom::rose::hibiscus::sunflower::blossom:")
-
-multi = '''If you end a line with two spaces,
-a soft return is used for the next line.
-
-Two (or more) newline characters in a row will result in a hard return.
-'''
-st.markdown(multi)
+st.header('This is a header with a divider', divider='rainbow')
+st.header('_Streamlit_ is :blue[cool] :sunglasses:')
 
 # Function to simulate chatbot processing
 def process_query(user_input):
