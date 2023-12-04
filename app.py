@@ -1,8 +1,5 @@
 import streamlit as st
 
-st.header('This is a header with a divider', divider='rainbow')
-st.header('_Streamlit_ is :blue[cool] :sunglasses:')
-
 # Function to simulate chatbot processing
 def process_query(user_input):
     # Placeholder logic, replace with your actual processing logic
