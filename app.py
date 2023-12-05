@@ -2,6 +2,7 @@ import ee
 import geemap
 from datetime import datetime
 import streamlit as st
+
 service_account = 'service-nrsc@ee-my-srinivas.iam.gserviceaccount.com'
 credentials = ee.ServiceAccountCredentials(service_account, 'ee-my-srinivas-ef2bfb61b2f9.json')
 ee.Initialize(credentials)
