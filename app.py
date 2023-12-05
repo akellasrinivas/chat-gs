@@ -2,11 +2,10 @@ import ee
 import geemap
 from datetime import datetime
 import streamlit as st
-import io
+
 service_account = 'service-nrsc@ee-my-srinivas.iam.gserviceaccount.com'
 credentials = ee.ServiceAccountCredentials(service_account, 'ee-my-srinivas-ef2bfb61b2f9.json')
 ee.Initialize(credentials)
-
 
 # Define the SARAnalyzer class
 class SARAnalyzer:
@@ -69,10 +68,13 @@ class SARAnalyzer:
         return yearly_water_spread
 
     def calculate_max_water_spread(self, selected_roi_name):
-        start_date_max = (start_date)
-        end_date_max = (end_date)
+        # Set a large date range to cover all available data
+        start_date_max = self.start_date.strftime("%Y-%m-%d")
+        end_date_max = self.end_date.strftime("%Y-%m-%d")
+
         sar_collection_max = self.load_sar_collection(start_date_max, end_date_max)
 
+        # Calculate maximum water spread in the ROI
         sar_vv_max = self.add_sar_layer_to_roi(self.selected_roi, start_date_max, end_date_max, geemap.Map())
         max_water_spread = self.calculate_water_spread(sar_vv_max, -15)
 
@@ -98,21 +100,17 @@ class SARAnalyzer:
             sar_vv = self.add_sar_layer_to_roi(self.selected_roi, start_date, end_date, static_map)
             static_map.centerObject(self.selected_roi, 10)
 
-            # Create a PNG image of the map using geemap
-            map_image = static_map.to_image()
+            # Display the map using Streamlit
+            st.write(static_map)
 
-            # Convert the PIL image to bytes
-            image_bytes = io.BytesIO()
-            map_image.save(image_bytes, format='PNG')
-
-            # Display the image using Streamlit
-            st.image(image_bytes, caption='Clipped SAR (VV) Layer', use_container_width=True)
-
+            # Set the start_date and end_date attributes
             self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
             self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
 
+            # Calculate water spread for the user input duration
             water_spread_user_input = self.calculate_water_spread(sar_vv, -15)
 
+            # Calculate maximum water spread in the ROI
             max_water_spread = self.calculate_max_water_spread(selected_roi_name)
             self.compare_water_spread(water_spread_user_input, max_water_spread)
 
@@ -123,6 +121,8 @@ class SARAnalyzer:
 
         else:
             st.error("Invalid ROI name. Please enter a valid ROI name.")
+
+
 # List of asset IDs for the shapefiles in your GEE account
 asset_ids = [
     'projects/ee-my-srinivas/assets/himayatsagar',
