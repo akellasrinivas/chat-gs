@@ -3,5 +3,4 @@ streamlit
 earthengine-api
 numpy
 pandas
-xarray
 io
