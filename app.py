@@ -93,37 +93,36 @@ class SARAnalyzer:
         if selected_roi_name in valid_roi_names:
             selected_roi_index = valid_roi_names.index(selected_roi_name)
             self.selected_roi = self.import_and_add_layers(asset_ids[selected_roi_index])
-    
+
             static_map = geemap.Map(width=800, height=600)
             sar_vv = self.add_sar_layer_to_roi(self.selected_roi, start_date, end_date, static_map)
             static_map.centerObject(self.selected_roi, 10)
-    
+
             # Create a PNG image of the map using geemap
             map_image = static_map.to_image()
-    
+
             # Convert the PIL image to bytes
             image_bytes = io.BytesIO()
             map_image.save(image_bytes, format='PNG')
-    
+
             # Display the image using Streamlit
-            st.image(image_bytes, caption='Clipped SAR (VV) Layer')
-    
+            st.image(image_bytes, caption='Clipped SAR (VV) Layer', use_container_width=True)
+
             self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
             self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
-    
+
             water_spread_user_input = self.calculate_water_spread(sar_vv, -15)
-    
+
             max_water_spread = self.calculate_max_water_spread(selected_roi_name)
             self.compare_water_spread(water_spread_user_input, max_water_spread)
-    
+
             yearly_water_spread = self.calculate_yearly_water_spread(self.sar_collection, -15)
-    
+
             # Generate chart for yearly water spread
             st.line_chart(data=yearly_water_spread, use_container_width=True)
-    
+
         else:
             st.error("Invalid ROI name. Please enter a valid ROI name.")
-
 # List of asset IDs for the shapefiles in your GEE account
 asset_ids = [
     'projects/ee-my-srinivas/assets/himayatsagar',
