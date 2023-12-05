@@ -91,7 +91,7 @@ class MapVisualizer:
         st.pyplot(self.Map.to_image())
 
     def map_roi(self, start_date, end_date, roi_name):
-        df = pd.read_csv('/content/ISROP.csv')
+        df = pd.read_csv('ISROP.csv')
         asset_ids = df['ROI_path'].tolist()
         shapefiles = [self.import_and_add_layers(asset_id) for asset_id in asset_ids]
         jrc_layer = ee.Image('JRC/GSW1_4/GlobalSurfaceWater').select('occurrence')
@@ -107,7 +107,7 @@ class MapVisualizer:
             st.warning("Invalid ROI name. Please enter a valid ROI name.")
 
 def main():
-    st.title("Water Monitoring Application")
+    st.title("CHAT GS")
 
     # Get user input using Streamlit text input
     user_text = st.text_input("Enter text:")
