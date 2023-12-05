@@ -101,11 +101,12 @@ class SARAnalyzer:
             # Create a PNG image of the map using geemap
             map_image = static_map.to_image()
     
-            # Convert the PIL image to PNG format explicitly
-            map_image_png = map_image.convert("PNG")
+            # Convert the PIL image to bytes
+            image_bytes = io.BytesIO()
+            map_image.save(image_bytes, format='PNG')
     
             # Display the image using Streamlit
-            st.image(map_image_png, caption='Clipped SAR (VV) Layer')
+            st.image(image_bytes, caption='Clipped SAR (VV) Layer')
     
             self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
             self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
@@ -122,7 +123,6 @@ class SARAnalyzer:
     
         else:
             st.error("Invalid ROI name. Please enter a valid ROI name.")
-
 
 # List of asset IDs for the shapefiles in your GEE account
 asset_ids = [
