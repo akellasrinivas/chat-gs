@@ -11,7 +11,7 @@ from difflib import get_close_matches
 
 # Set up Earth Engine credentials
 service_account = 'isronrsc@isro-407105.iam.gserviceaccount.com'
-credentials = ee.ServiceAccountCredentials(service_account, '/content/isro-407105-31fe627b6f09.json')
+credentials = ee.ServiceAccountCredentials(service_account, 'isro-407105-31fe627b6f09.json')
 ee.Initialize(credentials)
 
 # Module 1: Date Parser Code
