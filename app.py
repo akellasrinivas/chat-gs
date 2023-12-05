@@ -1,128 +1,140 @@
-import streamlit as st
 import ee
 import geemap
-import stanza
-import dateparser
-from datetime import datetime, timedelta
-import spacy
-import pandas as pd
-from nltk.tokenize import word_tokenize
-from difflib import get_close_matches
-
-# Set up Earth Engine credentials
-service_account = 'isronrsc@isro-407105.iam.gserviceaccount.com'
-credentials = ee.ServiceAccountCredentials(service_account, 'isro-407105-31fe627b6f09.json')
+from datetime import datetime
+import streamlit as st
+service_account = 'service-nrsc@ee-my-srinivas.iam.gserviceaccount.com'
+credentials = ee.ServiceAccountCredentials(service_account, 'ee-my-srinivas-ef2bfb61b2f9.json')
 ee.Initialize(credentials)
 
-# Module 1: Date Parser Code
-def date_parser(text):
-    stanza.download('en')
-    nlp = stanza.Pipeline('en')
-    doc = nlp(text)
-    ents = []
-    for sent in doc.sentences:
-        for ent in sent.ents:
-            if ent.type == 'DATE':
-                ents.append(ent.text)
-    parsed_dates = [dateparser.parse(date) for date in ents]
-    sorted_dates = sorted(parsed_dates)
-    start_date = sorted_dates[0].strftime('%y-%m-%d') if sorted_dates else None
-    end_date = sorted_dates[-1].strftime('%y-%m-%d') if sorted_dates else None
-    if start_date == end_date and start_date is not None:
-        end_date = datetime.now().strftime('%y-%m-%d')
-    if start_date is None and end_date is None:
-        end_date = datetime.now().strftime('%y-%m-%d')
-        start_date = (datetime.now() - timedelta(days=14)).strftime('%y-%m-%d')
-    return start_date, end_date
 
-# Module 2: ROI Extract Code
-class LocationExtractor:
-    def __init__(self, csv_file_path, threshold=0.8):
-        self.nlp = spacy.load('en_core_web_trf')
-        self.df = pd.read_csv(csv_file_path)
-        self.threshold = threshold
-
-    def fuzzy_match(self, token):
-        matches = get_close_matches(token, self.df['ROI_Name'].str.lower().tolist(), n=1, cutoff=self.threshold)
-        if matches:
-            return matches[0]
-        else:
-            return None
-
-    def extract_entities(self, user_input):
-        user_input_lower = user_input.lower()
-        tokens = word_tokenize(user_input_lower)
-        best_entity = None
-        for token in tokens:
-            matched_entity = self.fuzzy_match(token)
-            if matched_entity:
-                best_entity = matched_entity
-                break
-        return best_entity
-
-# Module 3: Map Visualizer Code
-class MapVisualizer:
+# Define the SARAnalyzer class
+class SARAnalyzer:
     def __init__(self):
-        self.Map = geemap.Map()
+        self.sar_collection = None
+        self.selected_roi = None
+        self.start_date = None
+        self.end_date = None
 
     def import_and_add_layers(self, asset_id, predefined_layers=None):
         shp = ee.FeatureCollection(asset_id)
+
         if predefined_layers:
             shp = shp.map(lambda feature: feature.set(predefined_layers))
+
         return shp
 
-    def add_layers_to_roi(self, shapefile, jrc_layer, sar_collection, start_date, end_date):
-        jrc_layer_clipped = jrc_layer.clip(shapefile)
-        sar_clipped = sar_collection.filterBounds(shapefile) \
-            .filterDate(start_date, end_date).mean().clip(shapefile.geometry())
-        self.Map.addLayer(jrc_layer_clipped, {'palette': 'blue'}, 'Clipped JRC Global Surface Water')
+    def add_sar_layer_to_roi(self, shapefile, start_date, end_date, map_obj):
+        sar_collection = self.load_sar_collection(start_date, end_date)
+
         sar_vv = sar_collection.filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV')) \
             .filter(ee.Filter.eq('instrumentMode', 'IW')).mean().clip(shapefile.geometry())
-        self.Map.addLayer(sar_vv, {'bands': ['VV'], 'min': -20, 'max': 0, 'gamma': 1.4}, 'Clipped SAR (VV) Layer')
-        sar_vh = sar_collection.filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH')) \
-            .filter(ee.Filter.eq('instrumentMode', 'IW')).mean().clip(shapefile.geometry())
-        self.Map.addLayer(sar_vh, {'bands': ['VH'], 'min': -20, 'max': 0, 'gamma': 1.4}, 'Clipped SAR (VH) Layer')
 
-    def visualize_roi(self, selected_roi, center_object_zoom=10):
-        self.Map.centerObject(selected_roi, center_object_zoom)
-        self.Map.addLayerControl()
+        map_obj.addLayer(sar_vv, {'bands': ['VV'], 'min': -20, 'max': 0, 'gamma': 1.4}, 'Clipped SAR (VV) Layer')
 
-    def display_map(self):
-        st.pyplot(self.Map.to_image())
+        return sar_vv
 
-    def map_roi(self, start_date, end_date, roi_name):
-        df = pd.read_csv('ISROP.csv')
-        asset_ids = df['ROI_path'].tolist()
-        shapefiles = [self.import_and_add_layers(asset_id) for asset_id in asset_ids]
-        jrc_layer = ee.Image('JRC/GSW1_4/GlobalSurfaceWater').select('occurrence')
-        sar_collection = ee.ImageCollection('COPERNICUS/S1_GRD').filterDate('2020-06-01', '2020-10-01')
-        valid_roi_names = df['ROI_Name'].tolist()
-        if roi_name in valid_roi_names:
-            selected_roi_index = valid_roi_names.index(roi_name)
-            selected_roi = shapefiles[selected_roi_index]
-            self.add_layers_to_roi(selected_roi, jrc_layer, sar_collection, start_date, end_date)
-            self.visualize_roi(selected_roi)
-            self.display_map()
+    def load_sar_collection(self, start_date, end_date):
+        sar_collection = ee.ImageCollection('COPERNICUS/S1_GRD') \
+            .filterDate(ee.Date(start_date), ee.Date(end_date)) \
+            .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV')) \
+            .filter(ee.Filter.eq('instrumentMode', 'IW'))
+
+        self.sar_collection = sar_collection
+        return sar_collection
+
+    def calculate_water_spread(self, image, threshold):
+        water_mask = image.lt(threshold)
+
+        water_area_m2 = water_mask.multiply(ee.Image.pixelArea()).reduceRegion(
+            reducer=ee.Reducer.sum(),
+            geometry=self.selected_roi.geometry(),
+            scale=30
+        ).getInfo()['VV']
+
+        water_area_km2 = water_area_m2 / 1e6
+
+        return water_area_km2
+
+    def calculate_yearly_water_spread(self, image_collection, threshold):
+        yearly_water_spread = []
+
+        for year in range(self.start_date.year, self.end_date.year + 1):
+            start_date = f"{year}-01-01"
+            end_date = f"{year + 1}-01-01"
+
+            year_collection = image_collection.filterDate(ee.Date(start_date), ee.Date(end_date))
+            yearly_water_spread.append(self.calculate_water_spread(year_collection.mean(), threshold))
+
+        return yearly_water_spread
+
+    def calculate_max_water_spread(self, selected_roi_name):
+        start_date_max = (start_date)
+        end_date_max = (end_date)
+        sar_collection_max = self.load_sar_collection(start_date_max, end_date_max)
+
+        sar_vv_max = self.add_sar_layer_to_roi(self.selected_roi, start_date_max, end_date_max, geemap.Map())
+        max_water_spread = self.calculate_water_spread(sar_vv_max, -15)
+
+        return max_water_spread
+
+    def compare_water_spread(self, water_spread_user_input, max_water_spread):
+        st.write(f'The waterspread of {self.selected_roi.getInfo()["id"].split("/")[-1].capitalize()} in the given duration is: {water_spread_user_input:.2f} square kilometers.')
+
+        if water_spread_user_input > max_water_spread:
+            st.write(f'Water spread increased in the user input duration by {water_spread_user_input - max_water_spread:.2f} square kilometers.')
+        elif water_spread_user_input < max_water_spread:
+            st.write(f'Water spread decreased in the user input duration by {max_water_spread - water_spread_user_input:.2f} square kilometers.')
         else:
-            st.warning("Invalid ROI name. Please enter a valid ROI name.")
+            st.write('Water spread remained the same in the user input duration.')
 
-def main():
-    st.title("CHAT GS")
+    def run_analysis(self, asset_ids, selected_roi_name, start_date, end_date):
+        valid_roi_names = ['himayatsagar', 'hussansagar', 'osmansagar', 'sriramsagar']
+        if selected_roi_name in valid_roi_names:
+            selected_roi_index = valid_roi_names.index(selected_roi_name)
+            self.selected_roi = self.import_and_add_layers(asset_ids[selected_roi_index])
 
-    # Get user input using Streamlit text input
-    user_text = st.text_input("Enter text:")
+            static_map = geemap.Map(width=800, height=600)
+            sar_vv = self.add_sar_layer_to_roi(self.selected_roi, start_date, end_date, static_map)
+            static_map.centerObject(self.selected_roi, 10)
 
-    if st.button("Run Workflow"):
-        # Module 1: Date Parser Code
-        start_date, end_date = date_parser(user_text)
+            # Create a PNG image of the map using geemap
+            map_image = static_map.to_image()
 
-        # Module 2: ROI Extract Code
-        location_extractor = LocationExtractor('/content/ISROP.csv')
-        extracted_location = location_extractor.extract_entities(user_text)
+            # Display the image using Streamlit
+            st.image(map_image, caption='Clipped SAR (VV) Layer')
 
-        # Module 3: Map Visualizer Code
-        map_visualizer = MapVisualizer()
-        map_visualizer.map_roi(start_date, end_date, extracted_location)
+            self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
+            self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
 
-if __name__ == "__main__":
-    main()
+            water_spread_user_input = self.calculate_water_spread(sar_vv, -15)
+
+            max_water_spread = self.calculate_max_water_spread(selected_roi_name)
+            self.compare_water_spread(water_spread_user_input, max_water_spread)
+
+            yearly_water_spread = self.calculate_yearly_water_spread(self.sar_collection, -15)
+
+            # Generate chart for yearly water spread
+            st.line_chart(data=yearly_water_spread, use_container_width=True)
+
+        else:
+            st.error("Invalid ROI name. Please enter a valid ROI name.")
+
+
+# List of asset IDs for the shapefiles in your GEE account
+asset_ids = [
+    'projects/ee-my-srinivas/assets/himayatsagar',
+    'projects/ee-my-srinivas/assets/hussansagar',
+    'projects/ee-my-srinivas/assets/osmansagar',
+    'projects/ee-my-srinivas/assets/sriramsagar'
+]
+
+# User input for selecting a specific ROI and specifying the date range for SAR data
+selected_roi_name = st.sidebar.selectbox("Select ROI", ['himayatsagar', 'hussansagar', 'osmansagar', 'sriramsagar'])
+start_date = st.sidebar.date_input("Start Date", datetime(2022, 1, 1))
+end_date = st.sidebar.date_input("End Date", datetime(2022, 12, 31))
+
+sar_analyzer = SARAnalyzer()
+
+if st.button("Run Analysis"):
+    sar_analyzer.run_analysis(asset_ids, selected_roi_name, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+
