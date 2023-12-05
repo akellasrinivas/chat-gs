@@ -1,5 +1,5 @@
-earthengine-api
 geemap
 streamlit
-xarray
+earthengine-api
+numpy
 pandas
