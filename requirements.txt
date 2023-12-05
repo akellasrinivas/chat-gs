@@ -1,3 +1,5 @@
-earthengine-api==0.1.278
-geemap==0.8.15
-streamlit==1.10.0
+earthengine-api
+geemap
+streamlit
+xarray
+pandas
