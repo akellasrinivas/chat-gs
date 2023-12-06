@@ -98,14 +98,17 @@ class SARAnalyzer:
             selected_roi_index = valid_roi_names.index(selected_roi_name)
             self.selected_roi = self.import_and_add_layers(asset_ids[selected_roi_index])
 
-            static_map = geemap.Map(width=800, height=600)
-            sar_vv = self.add_sar_layer_to_roi(self.selected_roi, start_date, end_date, static_map)
-            static_map.centerObject(self.selected_roi, 10)
+            # Use geemap.Map directly instead of creating static_map
+            m = geemap.Map(width=800, height=600)
+
+            # Add basemap and layers
+            m.add_basemap("OpenTopoMap")
+            sar_vv = self.add_sar_layer_to_roi(self.selected_roi, start_date, end_date, m)
+            m.centerObject(self.selected_roi, 10)
 
             # Display the map using Streamlit
-            m = geemap.Map(static_map)
-            m.add_basemap("OpenTopoMap")
-            m.to_streamlit(height=500)
+            st.write(m)
+
             # Set the start_date and end_date attributes
             self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
             self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
@@ -124,7 +127,6 @@ class SARAnalyzer:
 
         else:
             st.error("Invalid ROI name. Please enter a valid ROI name.")
-
 
 # List of asset IDs for the shapefiles in your GEE account
 asset_ids = [
