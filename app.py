@@ -102,8 +102,8 @@ class SARAnalyzer:
             static_map.centerObject(self.selected_roi, 10)
 
             # Display the map using Streamlit
-            st.session_state.Map = folium.Map()
-
+            st.session_state.Map = folium.Map() 
+            rendered_map = st_folium(st.session_state.Map)
             # Set the start_date and end_date attributes
             self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
             self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
