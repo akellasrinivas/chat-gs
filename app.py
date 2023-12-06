@@ -2,6 +2,7 @@ import ee
 import geemap
 from datetime import datetime
 import streamlit as st
+import folium
 
 service_account = 'service-nrsc@ee-my-srinivas.iam.gserviceaccount.com'
 credentials = ee.ServiceAccountCredentials(service_account, 'ee-my-srinivas-ef2bfb61b2f9.json')
@@ -101,7 +102,7 @@ class SARAnalyzer:
             static_map.centerObject(self.selected_roi, 10)
 
             # Display the map using Streamlit
-            st.image(static_map)
+            st.session_state.Map = folium.Map()
 
             # Set the start_date and end_date attributes
             self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
