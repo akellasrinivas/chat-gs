@@ -101,7 +101,7 @@ class SARAnalyzer:
             static_map.centerObject(self.selected_roi, 10)
 
             # Display the map using Streamlit
-            st.write(static_map)
+            st.map(static_map)
 
             # Set the start_date and end_date attributes
             self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
