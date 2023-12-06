@@ -3,6 +3,7 @@ import geemap
 from datetime import datetime
 import streamlit as st
 import folium
+import geemap.foliumap as geemap
 
 service_account = 'service-nrsc@ee-my-srinivas.iam.gserviceaccount.com'
 credentials = ee.ServiceAccountCredentials(service_account, 'ee-my-srinivas-ef2bfb61b2f9.json')
@@ -102,7 +103,9 @@ class SARAnalyzer:
             static_map.centerObject(self.selected_roi, 10)
 
             # Display the map using Streamlit
-            st.write(static_map)
+            m = geemap.Map(static_map)
+            m.add_basemap("OpenTopoMap")
+            m.to_streamlit(height=500)
             # Set the start_date and end_date attributes
             self.start_date = datetime.strptime(start_date, "%Y-%m-%d")
             self.end_date = datetime.strptime(end_date, "%Y-%m-%d")
